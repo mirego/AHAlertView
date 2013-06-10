@@ -699,7 +699,7 @@ typedef void (^AHAnimationBlock)();
 	self.titleLabel.text = self.title;
 	CGSize titleSize = [self.titleLabel.text sizeWithFont:self.titleLabel.font
 										constrainedToSize:boundingRect.size
-											lineBreakMode:UILineBreakModeWordWrap];
+											lineBreakMode:AHLineBreakModeWordWrap];
 	self.titleLabel.frame = CGRectMake(boundingRect.origin.x, boundingRect.origin.y,
 									   boundingRect.size.width, titleSize.height);
 
@@ -720,7 +720,7 @@ typedef void (^AHAnimationBlock)();
 	self.messageLabel.text = self.message;
 	CGSize messageSize = [self.messageLabel.text sizeWithFont:self.messageLabel.font
 											constrainedToSize:boundingRect.size
-												lineBreakMode:UILineBreakModeWordWrap];
+												lineBreakMode:AHLineBreakModeWordWrap];
 	self.messageLabel.frame = CGRectMake(boundingRect.origin.x, boundingRect.origin.y,
 										 boundingRect.size.width, messageSize.height);
 
@@ -861,7 +861,7 @@ typedef void (^AHAnimationBlock)();
 {
 	UILabel *label = [[UILabel alloc] initWithFrame:CGRectZero];
 	label.backgroundColor = [UIColor clearColor];
-	label.textAlignment = UITextAlignmentCenter;
+	label.textAlignment = AHTextAlignmentCenter;
 	label.numberOfLines = 0;
 	[self addSubview:label];
 	

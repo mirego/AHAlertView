@@ -24,6 +24,14 @@
 
 #import <UIKit/UIKit.h>
 
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 60000
+#define AHTextAlignmentCenter NSTextAlignmentCenter
+#define AHLineBreakModeWordWrap NSLineBreakByWordWrapping
+#else
+#define AHTextAlignmentCenter UITextAlignmentCenter
+#define AHLineBreakModeWordWrap UILineBreakModeWordWrap
+#endif
+
 typedef enum {
     AHAlertViewStyleDefault = 0,
     AHAlertViewStyleSecureTextInput,

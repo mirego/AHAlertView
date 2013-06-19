@@ -67,6 +67,9 @@ static CGFloat CGAffineTransformGetAbsoluteRotationAngleDifference(CGAffineTrans
 typedef void (^AHAnimationCompletionBlock)(BOOL);
 typedef void (^AHAnimationBlock)();
 
+@interface AHAlertView () <UITextFieldDelegate>
+@end
+
 @interface AHAlertView () {
 	// Flag to indicate whether this alert view has ever layed out its subviews
 	BOOL hasLayedOut;
@@ -749,9 +752,10 @@ typedef void (^AHAnimationBlock)();
 		self.plainTextField.backgroundColor = [UIColor whiteColor];
 		self.plainTextField.keyboardAppearance = UIKeyboardAppearanceAlert;
 		self.plainTextField.clearButtonMode = UITextFieldViewModeWhileEditing;
-		self.plainTextField.returnKeyType = UIReturnKeyNext;
+		self.plainTextField.returnKeyType = UIReturnKeyDone;
 		self.plainTextField.borderStyle = UITextBorderStyleLine;
 		self.plainTextField.placeholder = @"Username";
+		self.plainTextField.delegate = self;
 		[self addSubview:self.plainTextField];
 	}
 
@@ -766,11 +770,14 @@ typedef void (^AHAnimationBlock)();
 		self.secureTextField.backgroundColor = [UIColor whiteColor];
 		self.secureTextField.keyboardAppearance = UIKeyboardAppearanceAlert;
 		self.secureTextField.clearButtonMode = UITextFieldViewModeWhileEditing;
-		self.secureTextField.returnKeyType = UIReturnKeyNext;
+		self.secureTextField.returnKeyType = UIReturnKeyDone;
 		self.secureTextField.borderStyle = UITextBorderStyleLine;
 		self.secureTextField.placeholder = @"Password";
 		self.secureTextField.secureTextEntry = YES;
+		self.secureTextField.delegate = self;
 		[self addSubview:self.secureTextField];
+        
+		self.plainTextField.returnKeyType = UIReturnKeyNext;
 	}
 }
 
@@ -1007,6 +1014,27 @@ typedef void (^AHAnimationBlock)();
 		previousOrientation = currentOrientation;
 		[self reposition];
 	}
+}
+
+#pragma mark - Text field delegate
+
+- (BOOL)textFieldShouldReturn:(UITextField *)textField
+{
+    if (textField == [self textFieldAtIndex:0 throws:NO]) {
+        if (([self textFieldAtIndex:1 throws:NO] != nil)) {
+            [[self textFieldAtIndex:1 throws:NO] becomeFirstResponder];
+            
+        } else {
+            UIButton *defaultButton = [self.otherButtons lastObject];
+            [self buttonWasPressed:defaultButton];
+        }
+        
+    } else if (textField == [self textFieldAtIndex:1 throws:NO]) {
+        UIButton *defaultButton = [self.otherButtons lastObject];
+        [self buttonWasPressed:defaultButton];
+    }
+    
+    return YES;
 }
 
 #pragma mark - Drawing utilities for implementing system control styles

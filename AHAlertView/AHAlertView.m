@@ -478,6 +478,18 @@ typedef void (^AHAnimationBlock)();
 
 #pragma mark - Presentation and dismissal animation utilities
 
+- (void)setCenterAlignToPixel:(CGPoint)center
+{
+    CGFloat top = ((self.superview.bounds.size.height - self.bounds.size.height) * 0.5);
+    center.y += top - floorf(top);
+    self.center = center;
+    // after assign the center, just make sure the origin is not on an half pixel.
+    CGRect viewFrame = self.frame;
+    viewFrame.origin.x = floorf(viewFrame.origin.x);
+    viewFrame.origin.y = floorf(viewFrame.origin.y);
+    self.frame = viewFrame;
+}
+
 - (void)performPresentationAnimation
 {
 	if(self.presentationStyle == AHAlertViewPresentationStylePop)
@@ -528,7 +540,7 @@ typedef void (^AHAnimationBlock)();
 		offset = CGPointApplyAffineTransform(offset, self.transform);
 		CGPoint originCenter = CGPointMake(self.center.x + offset.x, self.center.y + offset.y);
 
-		self.center = originCenter;
+		[self setCenterAlignToPixel:originCenter];
 		self.dimView.alpha = 0.01;
 
 		[UIView animateWithDuration:0.4
@@ -536,7 +548,7 @@ typedef void (^AHAnimationBlock)();
 							options:UIViewAnimationOptionCurveEaseInOut
 						 animations:^
 		 {
-			 self.center = targetCenter;
+			 [self setCenterAlignToPixel:targetCenter];
 			 self.dimView.alpha = 1;
 		 }
 						 completion:nil];
@@ -580,7 +592,7 @@ typedef void (^AHAnimationBlock)();
 			 CGPoint offset = CGPointMake(0, self.superview.bounds.size.height * 1.5);
 			 offset = CGPointApplyAffineTransform(offset, self.transform);
 			 self.transform = CGAffineTransformConcat(self.transform, CGAffineTransformMakeRotation(-M_PI_4));
-			 self.center = CGPointMake(self.center.x + offset.x, self.center.y + offset.y);
+			 [self setCenterAlignToPixel:CGPointMake(self.center.x + offset.x, self.center.y + offset.y)];
 			 self.dimView.alpha = 0;
 		 }
 						 completion:completionBlock];
@@ -632,7 +644,7 @@ typedef void (^AHAnimationBlock)();
 		 {
 			 CGPoint offset = [self centerOffsetForDirection:self.exitDirection];
 			 offset = CGPointApplyAffineTransform(offset, self.transform);
-			 self.center = CGPointMake(self.center.x + offset.x, self.center.y + offset.y);
+			 [self setCenterAlignToPixel:CGPointMake(self.center.x + offset.x, self.center.y + offset.y)];
 			 
 			 self.dimView.alpha = 0;
 		 }
@@ -964,7 +976,7 @@ typedef void (^AHAnimationBlock)();
 		superviewBounds.size.height += keyboardOffset.y;
 
 		CGPoint newCenter = CGPointMake(superviewBounds.size.width * 0.5, superviewBounds.size.height * 0.5);
-		self.center = newCenter;
+		[self setCenterAlignToPixel:newCenter];
 	};
 
 	// Determine if the rotation we're about to undergo is 90 degrees or 180 degrees.

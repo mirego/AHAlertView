@@ -902,7 +902,7 @@ typedef void (^AHAnimationBlock)();
 	// If there are just two buttons, position them side-by-side, cancel button first.
 	if([self shouldUseSingleRowButtonLayout])
 	{
-		allButtons = [NSArray arrayWithObjects:self.cancelButton, [allButtons objectAtIndex:0], nil];
+		allButtons = [NSMutableArray arrayWithObjects:self.cancelButton, [allButtons objectAtIndex:0], nil];
 	}
 
 	return allButtons;

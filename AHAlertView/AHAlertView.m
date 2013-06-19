@@ -730,6 +730,14 @@ typedef void (^AHAnimationBlock)();
 	return boundingRect;
 }
 
+- (Class)textFieldClass
+{
+    if ([_textFieldClass isSubclassOfClass:[UITextField class]])
+        return _textFieldClass;
+    else
+        return [UITextField class];
+}
+
 // Internal utility to create or destroy text fields based on current alert view style
 - (void)ensureTextFieldsForCurrentAlertStyle
 {
@@ -745,7 +753,7 @@ typedef void (^AHAnimationBlock)();
 	}
 	else if(wantsPlainTextField && !self.plainTextField)
 	{
-		self.plainTextField = [[UITextField alloc] initWithFrame:CGRectZero];
+		self.plainTextField = [[[self textFieldClass] alloc] initWithFrame:CGRectZero];
 		self.plainTextField.backgroundColor = [UIColor whiteColor];
 		self.plainTextField.keyboardAppearance = UIKeyboardAppearanceAlert;
 		self.plainTextField.clearButtonMode = UITextFieldViewModeWhileEditing;
@@ -762,7 +770,7 @@ typedef void (^AHAnimationBlock)();
 	}
 	else if(wantsSecureTextField && !self.secureTextField)
 	{
-		self.secureTextField = [[UITextField alloc] initWithFrame:CGRectZero];
+		self.secureTextField = [[[self textFieldClass] alloc] initWithFrame:CGRectZero];
 		self.secureTextField.backgroundColor = [UIColor whiteColor];
 		self.secureTextField.keyboardAppearance = UIKeyboardAppearanceAlert;
 		self.secureTextField.clearButtonMode = UITextFieldViewModeWhileEditing;

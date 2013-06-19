@@ -67,6 +67,9 @@ static CGFloat CGAffineTransformGetAbsoluteRotationAngleDifference(CGAffineTrans
 typedef void (^AHAnimationCompletionBlock)(BOOL);
 typedef void (^AHAnimationBlock)();
 
+@interface AHAlertView () <UITextFieldDelegate>
+@end
+
 @interface AHAlertView () {
 	// Flag to indicate whether this alert view has ever layed out its subviews
 	BOOL hasLayedOut;
@@ -140,7 +143,9 @@ typedef void (^AHAnimationBlock)();
 
 	// Set basic button background images.
 	[[self appearance] setButtonBackgroundImage:[self normalButtonBackgroundImage] forState:UIControlStateNormal];
-	
+
+	[[self appearance] setDestructiveButtonBackgroundImage:[self normalButtonBackgroundImage] forState:UIControlStateNormal];
+
 	[[self appearance] setCancelButtonBackgroundImage:[self cancelButtonBackgroundImage] forState:UIControlStateNormal];
 }
 
@@ -478,6 +483,18 @@ typedef void (^AHAnimationBlock)();
 
 #pragma mark - Presentation and dismissal animation utilities
 
+- (void)setCenterAlignToPixel:(CGPoint)center
+{
+    CGFloat top = ((self.superview.bounds.size.height - self.bounds.size.height) * 0.5);
+    center.y += top - floorf(top);
+    self.center = center;
+    // after assign the center, just make sure the origin is not on an half pixel.
+    CGRect viewFrame = self.frame;
+    viewFrame.origin.x = floorf(viewFrame.origin.x);
+    viewFrame.origin.y = floorf(viewFrame.origin.y);
+    self.frame = viewFrame;
+}
+
 - (void)performPresentationAnimation
 {
 	if(self.presentationStyle == AHAlertViewPresentationStylePop)
@@ -528,7 +545,7 @@ typedef void (^AHAnimationBlock)();
 		offset = CGPointApplyAffineTransform(offset, self.transform);
 		CGPoint originCenter = CGPointMake(self.center.x + offset.x, self.center.y + offset.y);
 
-		self.center = originCenter;
+		[self setCenterAlignToPixel:originCenter];
 		self.dimView.alpha = 0.01;
 
 		[UIView animateWithDuration:0.4
@@ -536,7 +553,7 @@ typedef void (^AHAnimationBlock)();
 							options:UIViewAnimationOptionCurveEaseInOut
 						 animations:^
 		 {
-			 self.center = targetCenter;
+			 [self setCenterAlignToPixel:targetCenter];
 			 self.dimView.alpha = 1;
 		 }
 						 completion:nil];
@@ -580,7 +597,7 @@ typedef void (^AHAnimationBlock)();
 			 CGPoint offset = CGPointMake(0, self.superview.bounds.size.height * 1.5);
 			 offset = CGPointApplyAffineTransform(offset, self.transform);
 			 self.transform = CGAffineTransformConcat(self.transform, CGAffineTransformMakeRotation(-M_PI_4));
-			 self.center = CGPointMake(self.center.x + offset.x, self.center.y + offset.y);
+			 [self setCenterAlignToPixel:CGPointMake(self.center.x + offset.x, self.center.y + offset.y)];
 			 self.dimView.alpha = 0;
 		 }
 						 completion:completionBlock];
@@ -632,7 +649,7 @@ typedef void (^AHAnimationBlock)();
 		 {
 			 CGPoint offset = [self centerOffsetForDirection:self.exitDirection];
 			 offset = CGPointApplyAffineTransform(offset, self.transform);
-			 self.center = CGPointMake(self.center.x + offset.x, self.center.y + offset.y);
+			 [self setCenterAlignToPixel:CGPointMake(self.center.x + offset.x, self.center.y + offset.y)];
 			 
 			 self.dimView.alpha = 0;
 		 }
@@ -730,6 +747,14 @@ typedef void (^AHAnimationBlock)();
 	return boundingRect;
 }
 
+- (Class)textFieldClass
+{
+    if ([_textFieldClass isSubclassOfClass:[UITextField class]])
+        return _textFieldClass;
+    else
+        return [UITextField class];
+}
+
 // Internal utility to create or destroy text fields based on current alert view style
 - (void)ensureTextFieldsForCurrentAlertStyle
 {
@@ -745,13 +770,14 @@ typedef void (^AHAnimationBlock)();
 	}
 	else if(wantsPlainTextField && !self.plainTextField)
 	{
-		self.plainTextField = [[UITextField alloc] initWithFrame:CGRectZero];
+		self.plainTextField = [[[self textFieldClass] alloc] initWithFrame:CGRectZero];
 		self.plainTextField.backgroundColor = [UIColor whiteColor];
 		self.plainTextField.keyboardAppearance = UIKeyboardAppearanceAlert;
 		self.plainTextField.clearButtonMode = UITextFieldViewModeWhileEditing;
-		self.plainTextField.returnKeyType = UIReturnKeyNext;
+		self.plainTextField.returnKeyType = UIReturnKeyDone;
 		self.plainTextField.borderStyle = UITextBorderStyleLine;
 		self.plainTextField.placeholder = @"Username";
+		self.plainTextField.delegate = self;
 		[self addSubview:self.plainTextField];
 	}
 
@@ -762,14 +788,16 @@ typedef void (^AHAnimationBlock)();
 	}
 	else if(wantsSecureTextField && !self.secureTextField)
 	{
-		self.secureTextField = [[UITextField alloc] initWithFrame:CGRectZero];
+		self.plainTextField.returnKeyType = UIReturnKeyNext;
+		self.secureTextField = [[[self textFieldClass] alloc] initWithFrame:CGRectZero];
 		self.secureTextField.backgroundColor = [UIColor whiteColor];
 		self.secureTextField.keyboardAppearance = UIKeyboardAppearanceAlert;
 		self.secureTextField.clearButtonMode = UITextFieldViewModeWhileEditing;
-		self.secureTextField.returnKeyType = UIReturnKeyNext;
+		self.secureTextField.returnKeyType = UIReturnKeyDone;
 		self.secureTextField.borderStyle = UITextBorderStyleLine;
 		self.secureTextField.placeholder = @"Password";
 		self.secureTextField.secureTextEntry = YES;
+		self.secureTextField.delegate = self;
 		[self addSubview:self.secureTextField];
 	}
 }
@@ -902,7 +930,7 @@ typedef void (^AHAnimationBlock)();
 	// If there are just two buttons, position them side-by-side, cancel button first.
 	if([self shouldUseSingleRowButtonLayout])
 	{
-		allButtons = [NSArray arrayWithObjects:self.cancelButton, [allButtons objectAtIndex:0], nil];
+		allButtons = [NSMutableArray arrayWithObjects:self.cancelButton, [allButtons objectAtIndex:0], nil];
 	}
 
 	return allButtons;
@@ -964,7 +992,7 @@ typedef void (^AHAnimationBlock)();
 		superviewBounds.size.height += keyboardOffset.y;
 
 		CGPoint newCenter = CGPointMake(superviewBounds.size.width * 0.5, superviewBounds.size.height * 0.5);
-		self.center = newCenter;
+		[self setCenterAlignToPixel:newCenter];
 	};
 
 	// Determine if the rotation we're about to undergo is 90 degrees or 180 degrees.
@@ -1007,6 +1035,27 @@ typedef void (^AHAnimationBlock)();
 		previousOrientation = currentOrientation;
 		[self reposition];
 	}
+}
+
+#pragma mark - Text field delegate
+
+- (BOOL)textFieldShouldReturn:(UITextField *)textField
+{
+    if (textField == [self textFieldAtIndex:0 throws:NO]) {
+        if (([self textFieldAtIndex:1 throws:NO] != nil)) {
+            [[self textFieldAtIndex:1 throws:NO] becomeFirstResponder];
+            
+        } else {
+            UIButton *defaultButton = [self.otherButtons lastObject];
+            [self buttonWasPressed:defaultButton];
+        }
+        
+    } else if (textField == [self textFieldAtIndex:1 throws:NO]) {
+        UIButton *defaultButton = [self.otherButtons lastObject];
+        [self buttonWasPressed:defaultButton];
+    }
+    
+    return YES;
 }
 
 #pragma mark - Drawing utilities for implementing system control styles

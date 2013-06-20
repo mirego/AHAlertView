@@ -95,6 +95,8 @@ typedef void (^AHAlertViewButtonBlock)();
 // For dismissal animations that have an origin other than the center of the screen (push),
 // this specifies the destination direction of the alert view.
 @property(nonatomic, assign) AHAlertViewExitDirection exitDirection;
+// Use this class inheriting from UITextField for text fields.
+@property(nonatomic, retain) Class textFieldClass;
 
 // Resets all UIAppearance modifiers back to generic iOS alert styles
 + (void)applySystemAlertAppearance;

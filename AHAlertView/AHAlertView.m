@@ -788,7 +788,6 @@ typedef void (^AHAnimationBlock)();
 	}
 	else if(wantsSecureTextField && !self.secureTextField)
 	{
-		self.plainTextField.returnKeyType = UIReturnKeyNext;
 		self.secureTextField = [[[self textFieldClass] alloc] initWithFrame:CGRectZero];
 		self.secureTextField.backgroundColor = [UIColor whiteColor];
 		self.secureTextField.keyboardAppearance = UIKeyboardAppearanceAlert;
@@ -799,6 +798,8 @@ typedef void (^AHAnimationBlock)();
 		self.secureTextField.secureTextEntry = YES;
 		self.secureTextField.delegate = self;
 		[self addSubview:self.secureTextField];
+        
+		self.plainTextField.returnKeyType = UIReturnKeyNext;
 	}
 }
 

@@ -24,7 +24,7 @@
 
 #import <UIKit/UIKit.h>
 
-#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 60000
+#ifdef __IPHONE_6_0
 #define AHTextAlignmentCenter NSTextAlignmentCenter
 #define AHLineBreakModeWordWrap NSLineBreakByWordWrapping
 #else
@@ -100,6 +100,12 @@ typedef void (^AHAlertViewButtonBlock)();
 
 // Resets all UIAppearance modifiers back to generic iOS alert styles
 + (void)applySystemAlertAppearance;
+
+// Builds a text attributes dictionary from the provided text attributes
++ (NSDictionary *)textAttributesWithFont:(UIFont *)font
+						 foregroundColor:(UIColor *)foregroundColor
+							 shadowColor:(UIColor *)shadowColor
+							shadowOffset:(CGSize)shadowOffset;
 
 // Designated initializer
 - (id)initWithTitle:(NSString *)title message:(NSString *)message;

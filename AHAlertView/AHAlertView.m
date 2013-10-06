@@ -110,6 +110,55 @@ typedef void (^AHAnimationBlock)();
 	[self applySystemAlertAppearance];
 }
 
++ (NSDictionary *)textAttributesWithFont:(UIFont *)font
+						 foregroundColor:(UIColor *)foregroundColor
+							 shadowColor:(UIColor *)shadowColor
+							shadowOffset:(CGSize)shadowOffset
+{
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 60000
+	NSShadow *textShadow = [[NSShadow alloc] init];
+	textShadow.shadowColor = shadowColor;
+	textShadow.shadowOffset = shadowOffset;
+
+	return @{ NSFontAttributeName : font,
+			  NSForegroundColorAttributeName : foregroundColor,
+			  NSShadowAttributeName : textShadow };
+#else
+	return @{ UITextAttributeFont: font,
+			  UITextAttributeTextColor : foregroundColor,
+			  UITextAttributeTextShadowColor :[UIColor blackColor],
+			  UITextAttributeTextShadowOffset : [NSValue valueWithCGSize:CGSizeMake(0, -1)] };
+#endif
+}
+
++ (void)getFont:(UIFont **)font
+foregroundColor:(UIColor **)foregroundColor
+	shadowColor:(UIColor **)shadowColor
+   shadowOffset:(CGSize *)shadowOffset
+fromTextAttributes:(NSDictionary *)attributes
+{
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 60000
+	NSShadow *textShadow = attributes[NSShadowAttributeName];
+	if (font)
+		*font = attributes[NSFontAttributeName];
+	if (foregroundColor)
+		*foregroundColor = attributes[NSForegroundColorAttributeName];
+	if (shadowColor)
+		*shadowColor = textShadow.shadowColor;
+	if (shadowOffset)
+		*shadowOffset = textShadow.shadowOffset;
+#else
+	if (font)
+		*font = attributes[UITextAttributeFont];
+	if (foregroundColor)
+		*foregroundColor = attributes[UITextAttributeTextColor];
+	if (shadowColor)
+		*shadowColor = attributes[UITextAttributeTextShadowColor];
+	if (shadowOffset)
+		*shadowOffset = [attributes[UITextAttributeTextShadowOffset] CGSizeValue];
+#endif
+}
+
 + (void)applySystemAlertAppearance {
 	// Set up default values for all UIAppearance-compatible selectors
 
@@ -120,26 +169,20 @@ typedef void (^AHAnimationBlock)();
 	[[self appearance] setContentInsets:UIEdgeInsetsMake(16, 8, 8, 8)];
 
 	// Configure text properties for title, message, and buttons so they accord with system defaults.
-	[[self appearance] setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-		[UIFont boldSystemFontOfSize:17], UITextAttributeFont,
-		[UIColor whiteColor], UITextAttributeTextColor,
-		[UIColor blackColor], UITextAttributeTextShadowColor,
-		[NSValue valueWithCGSize:CGSizeMake(0, -1)], UITextAttributeTextShadowOffset,
-		nil]];
+	[[self appearance] setTitleTextAttributes:[self textAttributesWithFont:[UIFont boldSystemFontOfSize:17]
+														   foregroundColor:[UIColor whiteColor]
+															   shadowColor:[UIColor blackColor]
+															  shadowOffset:CGSizeMake(0, -1)]];
 
-	[[self appearance] setMessageTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-		[UIFont systemFontOfSize:15], UITextAttributeFont,
-		[UIColor whiteColor], UITextAttributeTextColor,
-		[UIColor blackColor], UITextAttributeTextShadowColor,
-		[NSValue valueWithCGSize:CGSizeMake(0, -1)], UITextAttributeTextShadowOffset,
-		nil]];
+	[[self appearance] setMessageTextAttributes:[self textAttributesWithFont:[UIFont systemFontOfSize:15]
+															 foregroundColor:[UIColor whiteColor]
+																 shadowColor:[UIColor blackColor]
+																shadowOffset:CGSizeMake(0, -1)]];
 
-	[[self appearance] setButtonTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-		[UIFont boldSystemFontOfSize:17], UITextAttributeFont,
-		[UIColor whiteColor], UITextAttributeTextColor,
-		[UIColor blackColor], UITextAttributeTextShadowColor,
-		[NSValue valueWithCGSize:CGSizeMake(0, -1)], UITextAttributeTextShadowOffset,
-		nil]];
+	[[self appearance] setButtonTitleTextAttributes:[self textAttributesWithFont:[UIFont boldSystemFontOfSize:17]
+																 foregroundColor:[UIColor whiteColor]
+																	 shadowColor:[UIColor blackColor]
+																	shadowOffset:CGSizeMake(0, -1)]];
 
 	// Set basic button background images.
 	[[self appearance] setButtonBackgroundImage:[self normalButtonBackgroundImage] forState:UIControlStateNormal];
@@ -371,18 +414,36 @@ typedef void (^AHAnimationBlock)();
 
 - (void)applyTextAttributes:(NSDictionary *)attributes toLabel:(UILabel *)label
 {
-	label.font = [attributes objectForKey:UITextAttributeFont];
-	label.textColor = [attributes objectForKey:UITextAttributeTextColor];
-	label.shadowColor = [attributes objectForKey:UITextAttributeTextShadowColor];
-	label.shadowOffset = [[attributes objectForKey:UITextAttributeTextShadowOffset] CGSizeValue];
+	UIFont *font;
+	UIColor *textColor;
+	UIColor *shadowColor;
+	CGSize shadowOffset;
+	[[self class] getFont:&font
+		  foregroundColor:&textColor
+			  shadowColor:&shadowColor
+			 shadowOffset:&shadowOffset
+	   fromTextAttributes:attributes];
+	label.font = font;
+	label.textColor = textColor;
+	label.shadowColor = shadowColor;
+	label.shadowOffset = shadowOffset;
 }
 
 - (void)applyTextAttributes:(NSDictionary *)attributes toButton:(UIButton *)button
 {
-	button.titleLabel.font = [attributes objectForKey:UITextAttributeFont];
-	[button setTitleColor:[attributes objectForKey:UITextAttributeTextColor] forState:UIControlStateNormal];
-	[button setTitleShadowColor:[attributes objectForKey:UITextAttributeTextShadowColor] forState:UIControlStateNormal];
-	button.titleLabel.shadowOffset = [[attributes objectForKey:UITextAttributeTextShadowOffset] CGSizeValue];
+	UIFont *font;
+	UIColor *textColor;
+	UIColor *shadowColor;
+	CGSize shadowOffset;
+	[[self class] getFont:&font
+		  foregroundColor:&textColor
+			  shadowColor:&shadowColor
+			 shadowOffset:&shadowOffset
+	   fromTextAttributes:attributes];
+	button.titleLabel.font = font;
+	[button setTitleColor:textColor forState:UIControlStateNormal];
+	[button setTitleShadowColor:shadowColor forState:UIControlStateNormal];
+	button.titleLabel.shadowOffset = shadowOffset;
 }
 
 - (void)applyBackgroundImages:(NSDictionary *)imagesForStates toButton:(UIButton *)button
@@ -491,14 +552,12 @@ typedef void (^AHAnimationBlock)();
 
 - (void)setCenterAlignToPixel:(CGPoint)center
 {
-    CGFloat top = ((self.superview.bounds.size.height - self.bounds.size.height) * 0.5);
-    center.y += top - floorf(top);
-    self.center = center;
-    // after assign the center, just make sure the origin is not on an half pixel.
-    CGRect viewFrame = self.frame;
-    viewFrame.origin.x = floorf(viewFrame.origin.x);
-    viewFrame.origin.y = floorf(viewFrame.origin.y);
-    self.frame = viewFrame;
+	self.center = center;
+	CGRect frame = self.frame;
+	CGFloat inverseScale = 1.0 / [[UIScreen mainScreen] scale];
+	CGPoint centerCorrection = CGPointMake(fmod(frame.origin.x, inverseScale), fmod(frame.origin.y, inverseScale));
+	CGPoint roundedCenter = CGPointMake(center.x - centerCorrection.x, center.y - centerCorrection.y);
+	self.center = roundedCenter;
 }
 
 - (void)performPresentationAnimation
@@ -597,7 +656,7 @@ typedef void (^AHAnimationBlock)();
 		// off the screen while rotating slightly off-kilter. Use sparingly.
 		[UIView animateWithDuration:0.6
 							  delay:0.0
-							options:UIViewAnimationOptionCurveEaseIn
+							options:UIViewAnimationOptionCurveEaseIn | UIViewAnimationOptionBeginFromCurrentState
 						 animations:^
 		 {
 			 CGPoint offset = CGPointMake(0, self.superview.bounds.size.height * 1.5);
@@ -711,6 +770,19 @@ typedef void (^AHAnimationBlock)();
 	[self reposition];
 }
 
+- (CGSize)sizeOfString:(NSString *)string withFont:(UIFont *)font constrainedToSize:(CGSize)size
+{
+#if __IPHONE_OS_VERSION_MIN_REQUIRED >= 70000
+	NSDictionary *attributes = @{ NSFontAttributeName : font };
+	return [string boundingRectWithSize:size
+								options:NSStringDrawingUsesLineFragmentOrigin
+							 attributes:attributes
+								context:NULL].size;
+#else
+	return [string sizeWithFont:font constrainedToSize:size lineBreakMode:AHLineBreakModeWordWrap];
+#endif
+}
+
 - (CGRect)layoutTitleLabelWithinRect:(CGRect)boundingRect
 {
 	// Lazily generate a title label.
@@ -720,9 +792,9 @@ typedef void (^AHAnimationBlock)();
 	// Assign appropriate text attributes to this label, then calculate a suitable frame for it.
 	[self applyTextAttributes:self.titleTextAttributes toLabel:self.titleLabel];
 	self.titleLabel.text = self.title;
-	CGSize titleSize = [self.titleLabel.text sizeWithFont:self.titleLabel.font
-										constrainedToSize:boundingRect.size
-											lineBreakMode:AHLineBreakModeWordWrap];
+	CGSize titleSize = [self sizeOfString:self.titleLabel.text
+								 withFont:self.titleLabel.font
+						constrainedToSize:boundingRect.size];
 	self.titleLabel.frame = CGRectMake(boundingRect.origin.x, boundingRect.origin.y,
 									   boundingRect.size.width, titleSize.height);
 
@@ -741,9 +813,9 @@ typedef void (^AHAnimationBlock)();
 	// Assign appropriate text attributes to this label, then calculate a suitable frame for it.
 	[self applyTextAttributes:self.messageTextAttributes toLabel:self.messageLabel];
 	self.messageLabel.text = self.message;
-	CGSize messageSize = [self.messageLabel.text sizeWithFont:self.messageLabel.font
-											constrainedToSize:boundingRect.size
-												lineBreakMode:AHLineBreakModeWordWrap];
+	CGSize messageSize = [self sizeOfString:self.messageLabel.text
+								   withFont:self.messageLabel.font
+						  constrainedToSize:boundingRect.size];
 	self.messageLabel.frame = CGRectMake(boundingRect.origin.x, boundingRect.origin.y,
 										 boundingRect.size.width, messageSize.height);
 

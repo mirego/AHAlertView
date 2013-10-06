@@ -134,27 +134,21 @@ static const NSInteger kAHViewAutoresizingFlexibleMargins =
 													forState:UIControlStateNormal];
 	[[AHAlertView appearance] setButtonBackgroundImage:normalButtonImage
 											  forState:UIControlStateNormal];
-	
-	[[AHAlertView appearance] setTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-		[UIFont boldSystemFontOfSize:18], UITextAttributeFont,
-		[UIColor whiteColor], UITextAttributeTextColor,
-		[UIColor blackColor], UITextAttributeTextShadowColor,
-		[NSValue valueWithCGSize:CGSizeMake(0, -1)], UITextAttributeTextShadowOffset,
-		nil]];
 
-	[[AHAlertView appearance] setMessageTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-		[UIFont systemFontOfSize:14], UITextAttributeFont,
-		[UIColor colorWithWhite:0.8 alpha:1.0], UITextAttributeTextColor,
-		[UIColor blackColor], UITextAttributeTextShadowColor,
-		[NSValue valueWithCGSize:CGSizeMake(0, -1)], UITextAttributeTextShadowOffset,
-		nil]];
+	[[AHAlertView appearance] setTitleTextAttributes:[AHAlertView textAttributesWithFont:[UIFont boldSystemFontOfSize:18]
+																		 foregroundColor:[UIColor whiteColor]
+																			 shadowColor:[UIColor blackColor]
+																			shadowOffset:CGSizeMake(0, -1)]];
 
-	[[AHAlertView appearance] setButtonTitleTextAttributes:[NSDictionary dictionaryWithObjectsAndKeys:
-		[UIFont boldSystemFontOfSize:14], UITextAttributeFont,
-		[UIColor whiteColor], UITextAttributeTextColor,
-		[UIColor blackColor], UITextAttributeTextShadowColor,
-		[NSValue valueWithCGSize:CGSizeMake(0, -1)], UITextAttributeTextShadowOffset,
-		nil]];
+	[[AHAlertView appearance] setMessageTextAttributes:[AHAlertView textAttributesWithFont:[UIFont systemFontOfSize:14]
+																		   foregroundColor:[UIColor colorWithWhite:0.8 alpha:1.0]
+																			   shadowColor:[UIColor blackColor]
+																			  shadowOffset:CGSizeMake(0, -1)]];
+
+	[[AHAlertView appearance] setButtonTitleTextAttributes:[AHAlertView textAttributesWithFont:[UIFont boldSystemFontOfSize:14]
+																			   foregroundColor:[UIColor whiteColor]
+																				   shadowColor:[UIColor blackColor]
+																				  shadowOffset:CGSizeMake(0, -1)]];
 }
 
 @end

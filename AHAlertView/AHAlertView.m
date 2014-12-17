@@ -433,7 +433,13 @@ typedef void (^AHAnimationBlock)();
 	// Create a new alert-level UIWindow instance and make key. We need to do this so
 	// we appear above the status bar and can fade it appropriately.
 	CGRect screenBounds = [[UIScreen mainScreen] bounds];
-	self.alertWindow = [[UIWindow alloc] initWithFrame:screenBounds];
+	CGRect windowFrame;
+	if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 8.0f) {
+		windowFrame = UIInterfaceOrientationIsPortrait(previousOrientation) ? screenBounds : CGRectMake(CGRectGetMinX(screenBounds), CGRectGetMinY(screenBounds), CGRectGetHeight(screenBounds), CGRectGetWidth(screenBounds));
+	} else {
+		windowFrame = screenBounds;
+	}
+	self.alertWindow = [[UIWindow alloc] initWithFrame:windowFrame];
 	self.alertWindow.windowLevel = UIWindowLevelAlert;
 	self.previousKeyWindow = [[UIApplication sharedApplication] keyWindow];
 	[self.alertWindow makeKeyAndVisible];

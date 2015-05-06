@@ -215,8 +215,8 @@ fromTextAttributes:(NSDictionary *)attributes
 
 		// Subscribe to orientation and keyboard visibility change notifications
 		[[NSNotificationCenter defaultCenter] addObserver:self
-												 selector:@selector(deviceOrientationChanged:)
-													 name:UIDeviceOrientationDidChangeNotification
+												 selector:@selector(willChangeStatusBarOrientation:)
+													 name:UIApplicationWillChangeStatusBarOrientationNotification
 												   object:nil];
 
 		[[NSNotificationCenter defaultCenter] addObserver:self
@@ -228,9 +228,6 @@ fromTextAttributes:(NSDictionary *)attributes
 												 selector:@selector(keyboardFrameChanged:)
 													 name:UIKeyboardWillHideNotification
 												   object:nil];
-
-		// Finally, indicate that we'd like to know when the device changes orientations
-		[[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
 	}
 	return self;
 }
@@ -247,12 +244,9 @@ fromTextAttributes:(NSDictionary *)attributes
 	if(_destructiveButton)
 		objc_setAssociatedObject(_destructiveButton, AHAlertViewButtonBlockKey, nil, OBJC_ASSOCIATION_RETAIN);
 
-	// Indicate that this object is no longer interested in orientation changes
-	[[UIDevice currentDevice] endGeneratingDeviceOrientationNotifications];
-
 	// Unsubscribe from all notifications we signed up for
 	[[NSNotificationCenter defaultCenter] removeObserver:self
-													name:UIDeviceOrientationDidChangeNotification
+													name:UIApplicationWillChangeStatusBarOrientationNotification
 												  object:nil];
 
 	[[NSNotificationCenter defaultCenter] removeObserver:self
@@ -1041,16 +1035,17 @@ fromTextAttributes:(NSDictionary *)attributes
 - (CGAffineTransform)transformForCurrentOrientation
 {
 	// Calculate a rotation transform that matches the current interface orientation.
-	CGAffineTransform transform = CGAffineTransformIdentity;
-	UIInterfaceOrientation orientation = [[UIApplication sharedApplication] statusBarOrientation];
-	if(orientation == UIInterfaceOrientationPortraitUpsideDown)
-		transform = CGAffineTransformMakeRotation(M_PI);
-	else if(orientation == UIInterfaceOrientationLandscapeLeft)
-		transform = CGAffineTransformMakeRotation(-M_PI_2);
-	else if(orientation == UIInterfaceOrientationLandscapeRight)
-		transform = CGAffineTransformMakeRotation(M_PI_2);
-	
-	return transform;
+    switch (previousOrientation) {
+        case UIInterfaceOrientationUnknown:
+        case UIInterfaceOrientationPortrait:
+            return CGAffineTransformIdentity;
+        case UIInterfaceOrientationPortraitUpsideDown:
+            return CGAffineTransformMakeRotation(M_PI);
+        case UIInterfaceOrientationLandscapeLeft:
+            return CGAffineTransformMakeRotation(-M_PI_2);
+        case UIInterfaceOrientationLandscapeRight:
+            return CGAffineTransformMakeRotation(M_PI_2);
+    }
 }
 
 - (void)reposition
@@ -1104,9 +1099,9 @@ fromTextAttributes:(NSDictionary *)attributes
 	hasLayedOut = YES;
 }
 
-- (void)deviceOrientationChanged:(NSNotification *)notification
+- (void)willChangeStatusBarOrientation:(NSNotification *)notification
 {
-	UIInterfaceOrientation currentOrientation = [[UIApplication sharedApplication] statusBarOrientation];
+	UIInterfaceOrientation currentOrientation = [[[notification userInfo] objectForKey:UIApplicationStatusBarOrientationUserInfoKey] integerValue];
 
 	// If the current orientation doesn't match the destination orientation, rotate to compensate.
 	if(previousOrientation != currentOrientation)

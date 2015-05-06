@@ -52,15 +52,6 @@ static const CGFloat AHAlertViewTextFieldLeading = -1;
 static const CGFloat AHAlertViewButtonBottomMargin = 4;
 static const CGFloat AHAlertViewButtonHorizontalSpacing = 4;
 
-// This function may not be completely general. Works well enough for our purposes here.
-static CGFloat CGAffineTransformGetAbsoluteRotationAngleDifference(CGAffineTransform t1, CGAffineTransform t2)
-{
-	CGFloat dot = t1.a * t2.a + t1.c * t2.c;
-	CGFloat n1 = sqrtf(t1.a * t1.a + t1.c * t1.c);
-	CGFloat n2 = sqrtf(t2.a * t2.a + t2.c * t2.c);
-	return acosf(dot / (n1 * n2));
-}
-
 #pragma mark - Internal interface
 
 // Internal block type definitions
@@ -71,16 +62,12 @@ typedef void (^AHAnimationBlock)();
 @end
 
 @interface AHAlertView () {
-	// Flag to indicate whether this alert view has ever layed out its subviews
-	BOOL hasLayedOut;
 	// Flag to indicate whether keyboard is visible (or will soon be visible) on the screen
 	BOOL keyboardIsVisible;
 	// Flag to indicate whether the alert view is in the process of a dismissal animation
 	BOOL isDismissing;
 	// Vertical position of top edge of keyboard, when visible
 	CGFloat keyboardHeight;
-	// Last known interface orientation
-	UIInterfaceOrientation previousOrientation;
 }
 
 @property (nonatomic, strong) UIWindow *alertWindow;
@@ -215,11 +202,6 @@ fromTextAttributes:(NSDictionary *)attributes
 
 		// Subscribe to orientation and keyboard visibility change notifications
 		[[NSNotificationCenter defaultCenter] addObserver:self
-												 selector:@selector(willChangeStatusBarOrientation:)
-													 name:UIApplicationWillChangeStatusBarOrientationNotification
-												   object:nil];
-
-		[[NSNotificationCenter defaultCenter] addObserver:self
 												 selector:@selector(keyboardFrameChanged:)
 													 name:UIKeyboardWillShowNotification
 												   object:nil];
@@ -245,10 +227,6 @@ fromTextAttributes:(NSDictionary *)attributes
 		objc_setAssociatedObject(_destructiveButton, AHAlertViewButtonBlockKey, nil, OBJC_ASSOCIATION_RETAIN);
 
 	// Unsubscribe from all notifications we signed up for
-	[[NSNotificationCenter defaultCenter] removeObserver:self
-													name:UIApplicationWillChangeStatusBarOrientationNotification
-												  object:nil];
-
 	[[NSNotificationCenter defaultCenter] removeObserver:self
 													name:UIKeyboardWillShowNotification
 												  object:nil];
@@ -482,30 +460,28 @@ fromTextAttributes:(NSDictionary *)attributes
 {
 	self.presentationStyle = style;
 
-	// Cache the orientation we begin in.
-	previousOrientation = [[UIApplication sharedApplication] statusBarOrientation];
-
 	// Create a new alert-level UIWindow instance and make key. We need to do this so
 	// we appear above the status bar and can fade it appropriately.
-	CGRect screenBounds = [[UIScreen mainScreen] bounds];
-	CGRect windowFrame;
-	if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 8.0f) {
-		windowFrame = UIInterfaceOrientationIsPortrait(previousOrientation) ? screenBounds : CGRectMake(CGRectGetMinX(screenBounds), CGRectGetMinY(screenBounds), CGRectGetHeight(screenBounds), CGRectGetWidth(screenBounds));
-	} else {
-		windowFrame = screenBounds;
-	}
-	self.alertWindow = [[UIWindow alloc] initWithFrame:windowFrame];
-	self.alertWindow.windowLevel = UIWindowLevelAlert;
+	self.alertWindow = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
+    self.alertWindow.backgroundColor = [UIColor clearColor];
+    self.alertWindow.rootViewController = [[UIViewController alloc] init];
+    self.alertWindow.windowLevel = UIWindowLevelAlert;
+    
 	self.previousKeyWindow = [[UIApplication sharedApplication] keyWindow];
 	[self.alertWindow makeKeyAndVisible];
 
 	// Create a new radial gradiant background image to do the screen dimming effect
-	self.dimView = [[UIImageView alloc] initWithFrame:self.alertWindow.bounds];
-	self.dimView.image = [self backgroundGradientImageWithSize:self.alertWindow.bounds.size];
+	self.dimView = [[UIImageView alloc] initWithFrame:self.alertWindow.rootViewController.view.bounds];
+	self.dimView.image = [self backgroundGradientImageWithSize:self.dimView.bounds.size];
+    self.dimView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
 	self.dimView.userInteractionEnabled = YES;
 	
-	[self.alertWindow addSubview:self.dimView];
-	[self.alertWindow addSubview:self];
+    UIView *rootViewControllerView = self.alertWindow.rootViewController.view;
+    rootViewControllerView.backgroundColor = [UIColor clearColor];
+	[rootViewControllerView addSubview:self.dimView];
+	[rootViewControllerView addSubview:self];
+    
+    self.autoresizingMask = UIViewAutoresizingFlexibleLeftMargin | UIViewAutoresizingFlexibleRightMargin | UIViewAutoresizingFlexibleTopMargin | UIViewAutoresizingFlexibleBottomMargin;
 
 	[self layoutIfNeeded];
 
@@ -760,8 +736,15 @@ fromTextAttributes:(NSDictionary *)attributes
 	// Configure the background image view.
 	[self layoutBackgroundImageView];
 
-	// Rotate and position the alert view based on the new layout.
-	[self reposition];
+    // Try to center ourselves in the space above the keyboard.
+    CGPoint keyboardOffset = CGPointMake(0, -keyboardHeight);
+    keyboardOffset = CGPointApplyAffineTransform(keyboardOffset, self.transform);
+    CGRect superviewBounds = self.superview.bounds;
+    superviewBounds.size.width += keyboardOffset.x;
+    superviewBounds.size.height += keyboardOffset.y;
+    
+    CGPoint newCenter = CGPointMake(superviewBounds.size.width * 0.5, superviewBounds.size.height * 0.5);
+    [self setCenterAlignToPixel:newCenter];
 }
 
 - (CGSize)sizeOfString:(NSString *)string withFont:(UIFont *)font constrainedToSize:(CGSize)size
@@ -798,7 +781,7 @@ fromTextAttributes:(NSDictionary *)attributes
 	return boundingRect;
 }
 
-- (CGRect) layoutMessageLabelWithinRect:(CGRect)boundingRect
+- (CGRect)layoutMessageLabelWithinRect:(CGRect)boundingRect
 {
 	// Lazily generate a message label.
 	if(!self.messageLabel && self.message)
@@ -848,7 +831,7 @@ fromTextAttributes:(NSDictionary *)attributes
 		self.plainTextField.clearButtonMode = UITextFieldViewModeWhileEditing;
 		self.plainTextField.returnKeyType = UIReturnKeyDone;
 		self.plainTextField.borderStyle = UITextBorderStyleLine;
-		self.plainTextField.placeholder = @"Username";
+		self.plainTextField.placeholder = NSLocalizedString(@"Username", nil);
 		self.plainTextField.delegate = self;
 		[self addSubview:self.plainTextField];
 	}
@@ -866,7 +849,7 @@ fromTextAttributes:(NSDictionary *)attributes
 		self.secureTextField.clearButtonMode = UITextFieldViewModeWhileEditing;
 		self.secureTextField.returnKeyType = UIReturnKeyDone;
 		self.secureTextField.borderStyle = UITextBorderStyleLine;
-		self.secureTextField.placeholder = @"Password";
+		self.secureTextField.placeholder = NSLocalizedString(@"Password", nil);
 		self.secureTextField.secureTextEntry = YES;
 		self.secureTextField.delegate = self;
 		[self addSubview:self.secureTextField];
@@ -1018,8 +1001,7 @@ fromTextAttributes:(NSDictionary *)attributes
 
 	// Retrieve keyboard frame in screen space and transform it to window space.
 	CGRect keyboardFrame = [[[notification userInfo] valueForKey:UIKeyboardFrameEndUserInfoKey] CGRectValue];
-	CGRect transformedFrame = CGRectApplyAffineTransform(keyboardFrame, [self transformForCurrentOrientation]);
-	keyboardHeight = transformedFrame.size.height;
+	keyboardHeight = keyboardFrame.size.height;
 
 	// If the keyboard will soon be invisible, zero-out the stored height.
 	if(!keyboardIsVisible)
@@ -1028,87 +1010,6 @@ fromTextAttributes:(NSDictionary *)attributes
 	// If we're not currently dismissing, we should position ourselves to account for the keyboard.
 	if(!isDismissing)
 		[self setNeedsLayout];
-}
-
-#pragma mark - Orientation helpers
-
-- (CGAffineTransform)transformForCurrentOrientation
-{
-	// Calculate a rotation transform that matches the current interface orientation.
-    switch (previousOrientation) {
-        case UIInterfaceOrientationUnknown:
-        case UIInterfaceOrientationPortrait:
-            return CGAffineTransformIdentity;
-        case UIInterfaceOrientationPortraitUpsideDown:
-            return CGAffineTransformMakeRotation(M_PI);
-        case UIInterfaceOrientationLandscapeLeft:
-            return CGAffineTransformMakeRotation(-M_PI_2);
-        case UIInterfaceOrientationLandscapeRight:
-            return CGAffineTransformMakeRotation(M_PI_2);
-    }
-}
-
-- (void)reposition
-{
-	CGAffineTransform baseTransform = [self transformForCurrentOrientation];
-
-	// This block contains all of the logic for how we position ourselves to account for the
-	// presence of the keyboard and the current interface orientation.
-	AHAnimationBlock layoutBlock = ^
-	{
-		self.transform = baseTransform;
-
-		// Try to center ourselves in the space above the keyboard.
-		CGPoint keyboardOffset = CGPointMake(0, -keyboardHeight);
-		keyboardOffset = CGPointApplyAffineTransform(keyboardOffset, self.transform);
-		CGRect superviewBounds = self.superview.bounds;
-		superviewBounds.size.width += keyboardOffset.x;
-		superviewBounds.size.height += keyboardOffset.y;
-
-		CGPoint newCenter = CGPointMake(superviewBounds.size.width * 0.5, superviewBounds.size.height * 0.5);
-		[self setCenterAlignToPixel:newCenter];
-	};
-
-	// Determine if the rotation we're about to undergo is 90 degrees or 180 degrees.
-	CGFloat delta = CGAffineTransformGetAbsoluteRotationAngleDifference(self.transform, baseTransform);
-	const CGFloat HALF_PI = 1.581; // Don't use M_PI_2 here; precision errors will cause incorrect results below.
-	BOOL isDoubleRotation = (delta > HALF_PI);
-
-	// If we've layed out before, we should rotate to the new orientation.
-	if(hasLayedOut)
-	{
-		// Use the system rotation duration.
-		CGFloat duration = [[UIApplication sharedApplication] statusBarOrientationAnimationDuration];
-
-		// Egregious hax. iPad lies about its rotation duration.
-		if(UI_USER_INTERFACE_IDIOM() == UIUserInterfaceIdiomPad)
-			duration = 0.4;
-
-		// Simply double the animation duration if we're rotating a full 180 degrees.
-		if(isDoubleRotation)
-			duration *= 2;
-
-		[UIView animateWithDuration:duration animations:layoutBlock];
-	}
-	else
-	{
-		// We've never layed out before, so we should do it without animating, to prevent weird rotations.
-		layoutBlock();
-	}
-
-	hasLayedOut = YES;
-}
-
-- (void)willChangeStatusBarOrientation:(NSNotification *)notification
-{
-	UIInterfaceOrientation currentOrientation = [[[notification userInfo] objectForKey:UIApplicationStatusBarOrientationUserInfoKey] integerValue];
-
-	// If the current orientation doesn't match the destination orientation, rotate to compensate.
-	if(previousOrientation != currentOrientation)
-	{
-		previousOrientation = currentOrientation;
-		[self reposition];
-	}
 }
 
 #pragma mark - Text field delegate

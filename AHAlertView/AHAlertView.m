@@ -345,8 +345,8 @@ fromTextAttributes:(NSDictionary *)attributes
 
 	if(shouldThrow)
 	{
-		NSString *exceptionReason = [NSString stringWithFormat:@"Text field index %d was beyond bounds for current style.",
-									 textFieldIndex];
+		NSString *exceptionReason = [NSString stringWithFormat:@"Text field index %ld was beyond bounds for current style.",
+									 (long)textFieldIndex];
 		NSException *rangeException = [NSException exceptionWithName:NSRangeException reason:exceptionReason userInfo:nil];
 		[rangeException raise];
 	}

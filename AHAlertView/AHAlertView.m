@@ -58,6 +58,12 @@ static const CGFloat AHAlertViewButtonHorizontalSpacing = 4;
 typedef void (^AHAnimationCompletionBlock)(BOOL);
 typedef void (^AHAnimationBlock)();
 
+@interface AHAlertViewViewController : UIViewController
+
+@property (nonatomic, assign) UIViewController *rootViewController;
+- (id)initWithRootViewController:(UIViewController *)rootViewController;
+@end
+
 @interface AHAlertView () <UITextFieldDelegate>
 @end
 
@@ -464,7 +470,7 @@ fromTextAttributes:(NSDictionary *)attributes
 	// we appear above the status bar and can fade it appropriately.
 	self.alertWindow = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
     self.alertWindow.backgroundColor = [UIColor clearColor];
-    self.alertWindow.rootViewController = [[UIViewController alloc] init];
+    self.alertWindow.rootViewController = [[AHAlertViewViewController alloc] initWithRootViewController:[[[UIApplication sharedApplication] keyWindow] rootViewController]];
     self.alertWindow.windowLevel = UIWindowLevelAlert;
     
 	self.previousKeyWindow = [[UIApplication sharedApplication] keyWindow];
@@ -1197,6 +1203,27 @@ fromTextAttributes:(NSDictionary *)attributes
 	
 	CGFloat capHeight = floorf(rect.size.height * 0.5);
 	return [image resizableImageWithCapInsets:UIEdgeInsetsMake(capHeight, cornerRadius, capHeight, cornerRadius)];
+}
+
+@end
+
+@implementation AHAlertViewViewController
+
+- (id)initWithRootViewController:(UIViewController *)rootViewController {
+    self = [super init];
+    if (self) {
+        _rootViewController = rootViewController;
+    }
+    
+    return self;
+}
+
+- (BOOL)shouldAutorotate {
+    return [self.rootViewController shouldAutorotate];
+}
+
+- (NSUInteger)supportedInterfaceOrientations {
+    return [self.rootViewController supportedInterfaceOrientations];
 }
 
 @end

@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name         = 'AHAlertView@mirego'
-  s.version      = '1.2'
+  s.version      = '1.2.1'
   s.summary      = "AHAlertView is a powerful, block-based alternative to UIKit's UIAlertView."
   s.homepage     = 'https://github.com/mirego/AHAlertView'
   s.license      = { :type => 'MIT', :file => 'LICENSE' }
